@@ -25,6 +25,7 @@ int main()
 
         window.display();
     }
+    // 집에서 코드 작성해보기
 
     return 0;
 }
