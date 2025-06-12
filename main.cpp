@@ -44,6 +44,8 @@ int main()
     texturePlayer.loadFromFile("graphics/player.png");
     sf::Texture textureBranch;
     textureBranch.loadFromFile("graphics/branch.png");
+    sf::Texture textureAxe;
+    textureAxe.loadFromFile("graphics/axe.png");
 
     // 
 
@@ -53,6 +55,11 @@ int main()
     sf::Sprite spriteTree;
     spriteTree.setTexture(textureTree);
     spriteTree.setPosition(810, 0);
+
+    sf::Sprite spriteAxe;
+    spriteAxe.setTexture(textureAxe);
+    spriteAxe.setPosition(1920 * 0.5f, 815.f);
+    spriteAxe.setOrigin(texturePlayer.getSize().x * -0.61f, 0.0f);
 
     // 0, 1, 2 : 구름   3 : 포물선 벌   4 : 랜덤 움직임 벌
     sf::Sprite spriteCloudBee[5];
@@ -145,19 +152,20 @@ int main()
 
     bool isLeft = false;
     bool isRight = false;
-    int crashCount = 1;
+    bool isPause = false;
 
     while (window.isOpen())
     {
         sf::Time time = clock.restart();
         float deltaTime = time.asSeconds();
 
+        // 이벤트 루프
+        sf::Event event;
         bool isLeftDown = false;
         bool isLeftUp = false;
         bool isRightDown = false;
         bool isRightUp = false;
-        // 이벤트 루프
-        sf::Event event;
+
         while (window.pollEvent(event))
         {
             switch (event.type)
@@ -188,12 +196,10 @@ int main()
                     switch (event.key.code)
                     {
                         case sf::Keyboard::Left:
-                            isLeftDown = false;
                             isLeftUp = true;
                             isLeft = false;
                             break;
                         case sf::Keyboard::Right:
-                            isRightDown = false;
                             isRightUp = true;
                             isRight = false;
                             break;
@@ -217,9 +223,9 @@ int main()
             }
             updateBranches(sideBranch, NUM_BRANCHES);
 
-            if (sidePlayer == sideBranch[5])
+            if (sidePlayer == sideBranch[NUM_BRANCHES - 1])
             {
-                printf("충돌했습니다! : %d회\n",crashCount++);
+                printf("충돌했습니다!\n");
             }
         }
 
@@ -331,36 +337,45 @@ int main()
         {
             case Side::LEFT:
                 spritePlayer.setScale(-1.f, 1.f);
+                spriteAxe.setScale(-1.f, 1.f);
                 break;
             case Side::RIGHT:
                 spritePlayer.setScale(1.f, 1.f);
+                spriteAxe.setScale(1.f, 1.f);
                 break;
         }
 
         // 그리기
         window.clear();
 
-        window.draw(spriteBackground);
-        for (int i = 0; i < 3; i++)
+        window.draw(spriteBackground); // 배경
+        for (int i = 0; i < 3; i++) // 구름들
         {
-            window.draw(spriteCloudBee[i]);
+            window.draw(spriteCloudBee[i]); 
         }
-        window.draw(spriteTree);
-        for (int i = 0; i < NUM_BRANCHES; i++)
+        window.draw(spriteTree); // 나무
+        for (int i = 0; i < NUM_BRANCHES; i++) // 나뭇가지들
         {
             if (sideBranch[i] != Side::NONE)
             {
-                window.draw(spriteBranch[i]);
+                window.draw(spriteBranch[i]); 
             }
         }
-        for (int i = 3; i < 5; i++)
+        for (int i = 3; i < 5; i++) // 벌들
         {
-            window.draw(spriteCloudBee[i]);
+            window.draw(spriteCloudBee[i]); 
         }        
-        window.draw(spritePlayer);
+        window.draw(spritePlayer); // 플레이어
+        if (isLeft || isRight) // 도끼
+        {
+            window.draw(spriteAxe); 
+        }
 
         window.display();
     }
+
+    // isleft일때 axe 보이게
+    // 충돌시 게임 정지 그 상태에서 enter키 누를시 이어서 시작
 
     return 0;
 }
