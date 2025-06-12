@@ -4,11 +4,33 @@
 
 enum class Side { LEFT, RIGHT, NONE };
 
+void updateBranches(Side* branches,int size)
+{
+    for (int i = size - 1; i > 0; i--)
+    {
+        branches[i] = branches[i - 1];
+    }
+    
+    int r = rand() % 3;
+    switch (r)
+    {
+        case 0:
+            branches[0] = Side::LEFT;
+            break;
+        case 1:
+            branches[0] = Side::RIGHT;
+            break;
+        case 2:
+            branches[0] = Side::NONE;
+            break;
+    }
+}
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Timber!");
 
-    //
+    // 
 
     sf::Texture textureBackground;
     textureBackground.loadFromFile("graphics/background.png");
@@ -37,7 +59,7 @@ int main()
     sf::Vector2f dirCloudBee[5];
     sf::Vector2f posCloudBee[5];
     float speedCloudBee[5];
-    float random;
+    float random, beeStopTime = 0;
 
     for (int i = 0; i < 5; i++)
     {
@@ -81,45 +103,126 @@ int main()
             {
                 spriteCloudBee[i].setPosition(900, 800);
                 spriteCloudBee[i].setOrigin(textureBee.getSize().x * 0.5f, textureBee.getSize().y * 0.5f);
-                speedCloudBee[i] = 2500.f;
+                speedCloudBee[i] = 8000.f;
                 dirCloudBee[i] = { 1.0f,-1.0f };
             }
         }
     }
-
+        
     sf::Sprite spritePlayer;
     spritePlayer.setTexture(texturePlayer);
     spritePlayer.setOrigin(texturePlayer.getSize().x * 0.5f - textureTree.getSize().x, texturePlayer.getSize().y);
-    spritePlayer.setPosition(1920 * 0.5f, 925.f);
+    spritePlayer.setPosition(1920 * 0.5f, textureTree.getSize().y);
     Side sidePlayer = Side::LEFT;
 
     const int NUM_BRANCHES = 6;
     sf::Sprite spriteBranch[NUM_BRANCHES];
-    Side sideBranch[NUM_BRANCHES] = { Side::LEFT,Side::RIGHT, Side::NONE, Side::LEFT, Side::RIGHT, Side::NONE };
+    Side sideBranch[NUM_BRANCHES];
     for (int i = 0; i < NUM_BRANCHES; i++)
     {
         spriteBranch[i].setTexture(textureBranch);
         spriteBranch[i].setOrigin(textureTree.getSize().x * -0.5f, 0.f);
-        spriteBranch[i].setPosition(1920.f * 0.5, i * 150.f);        
+        spriteBranch[i].setPosition(1920.f * 0.5, i * 150.f);
+
+        int r = rand() % 3;
+        switch (r)
+        {
+            case 0:
+                sideBranch[i] = Side::LEFT;
+                break;
+            case 1:
+                sideBranch[i] = Side::RIGHT;
+                break;
+            case 2:
+                sideBranch[i] = Side::NONE;
+                break;
+        }
     }
+    sideBranch[NUM_BRANCHES - 1] = Side::NONE;
 
     srand((int)time(0));
     sf::Clock clock;
+
+    bool isLeft = false;
+    bool isRight = false;
+    int crashCount = 1;
 
     while (window.isOpen())
     {
         sf::Time time = clock.restart();
         float deltaTime = time.asSeconds();
 
+        bool isLeftDown = false;
+        bool isLeftUp = false;
+        bool isRightDown = false;
+        bool isRightUp = false;
         // 이벤트 루프
         sf::Event event;
         while (window.pollEvent(event))
         {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            switch (event.type)
+            {
+                case sf::Event::Closed:
+                    window.close();
+                    break;
+                case sf::Event::KeyPressed:
+                    switch (event.key.code)
+                    {
+                        case sf::Keyboard::Left:
+                            if (!isLeft)
+                            {
+                                isLeftDown = true;
+                            }
+                            isLeft = true;
+                            break;
+                        case sf::Keyboard::Right:
+                            if (!isRight)
+                            {
+                                isRightDown = true;
+                            }
+                            isRight = true;
+                            break;
+                    }
+                    break;
+                case sf::Event::KeyReleased:
+                    switch (event.key.code)
+                    {
+                        case sf::Keyboard::Left:
+                            isLeftDown = false;
+                            isLeftUp = true;
+                            isLeft = false;
+                            break;
+                        case sf::Keyboard::Right:
+                            isRightDown = false;
+                            isRightUp = true;
+                            isRight = false;
+                            break;
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
-        
+
         // 업데이트
+        if (isLeftDown || isRightDown)
+        {
+            if (isLeftDown)
+            {
+                sidePlayer = Side::LEFT;
+            }
+            if (isRightDown)
+            {
+                sidePlayer = Side::RIGHT;
+            }
+            updateBranches(sideBranch, NUM_BRANCHES);
+
+            if (sidePlayer == sideBranch[5])
+            {
+                printf("충돌했습니다! : %d회\n",crashCount++);
+            }
+        }
+
         for (int i = 0; i < 5; i++)
         {
             posCloudBee[i] = spriteCloudBee[i].getPosition();
@@ -172,29 +275,41 @@ int main()
                 }
                 else // 랜덤움직임 벌
                 {
-                    dirCloudBee[i].x = (float)(rand() % 3 - 1) * 3;
-                    dirCloudBee[i].y = (float)(rand() % 3 - 1);
-                    if (dirCloudBee[i].x > 0) spriteCloudBee[i].setScale(-1.0f, 1.0f);
-                    else spriteCloudBee[i].setScale(1.0f, 1.0f);
+                    beeStopTime += deltaTime;
 
-                    if (posCloudBee[i].x < -100 || posCloudBee[i].x > 1920 + 100)
+                    if (beeStopTime > 0.2f)
                     {
-                        if (random < 0.5f)
-                        {
-                            dirCloudBee[i] = { 1.0f,-1.0f };
-                            spriteCloudBee[i].setPosition(0, 800);
-                            spriteCloudBee[i].setScale(-1.0f, 1.0f);
-                        }
-                        else
-                        {
-                            dirCloudBee[i] = { -1.0f,-1.0f };
-                            spriteCloudBee[i].setPosition(1920, 800);
-                            spriteCloudBee[i].setScale(1.0f, 1.0f);
-                        }
-                    }
+                        beeStopTime = 0;
+                        dirCloudBee[i].x = (float)(rand() % 3 - 1) * 3;
+                        dirCloudBee[i].y = (float)(rand() % 3 - 1) * 2;
+                        if (dirCloudBee[i].x > 0) spriteCloudBee[i].setScale(-1.0f, 1.0f);
+                        else spriteCloudBee[i].setScale(1.0f, 1.0f);
 
-                    if (posCloudBee[i].y < 200) dirCloudBee[i].y = 1.0f;
-                    if (posCloudBee[i].y > 900) dirCloudBee[i].y = -1.0f;
+                        if (posCloudBee[i].x < -100 || posCloudBee[i].x > 1920 + 100)
+                        {
+                            if (random < 0.5f)
+                            {
+                                dirCloudBee[i] = { 1.0f,-1.0f };
+                                spriteCloudBee[i].setPosition(0, 800);
+                                spriteCloudBee[i].setScale(-1.0f, 1.0f);
+                            }
+                            else
+                            {
+                                dirCloudBee[i] = { -1.0f,-1.0f };
+                                spriteCloudBee[i].setPosition(1920, 800);
+                                spriteCloudBee[i].setScale(1.0f, 1.0f);
+                            }
+                        }
+
+                        if (posCloudBee[i].y < 400) dirCloudBee[i].y = 1.0f;
+                        if (posCloudBee[i].y > 900) dirCloudBee[i].y = -1.0f;
+
+                    }
+                    else
+                    {
+                        dirCloudBee[i].x = 0;
+                        dirCloudBee[i].y = 0;
+                    }
                 }
             }
         }
