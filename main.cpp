@@ -28,6 +28,7 @@ void updateBranches(Side* branches, int size)
 
 int main()
 {
+	srand((int)time(0));
 	sf::RenderWindow window(sf::VideoMode(1920, 1080), "Timber!");
 
 	// 
@@ -61,12 +62,12 @@ int main()
 	spriteAxe.setPosition(1920 * 0.5f, 815.f);
 	spriteAxe.setOrigin(texturePlayer.getSize().x * -0.61f, 0.0f);
 
-	// 0, 1, 2 : 구름   3 : 포물선 벌   4 : 랜덤 움직임 벌
+	/// 0, 1, 2 : 구름   3 : 포물선 벌   4 : 랜덤 움직임 벌
 	sf::Sprite spriteCloudBee[5];
 	sf::Vector2f dirCloudBee[5];
 	sf::Vector2f posCloudBee[5];
 	float speedCloudBee[5];
-	float random, beeStopTime = 0;
+	float random, t = 0, beeStopTime = 0;
 
 	for (int i = 0; i < 5; i++)
 	{
@@ -147,7 +148,6 @@ int main()
 	}
 	sideBranch[NUM_BRANCHES - 1] = Side::NONE;
 
-	srand((int)time(0));
 	sf::Clock clock;
 
 	bool isLeft = false;
@@ -219,7 +219,8 @@ int main()
 			}
 		}
 
-		// 업데이트
+		// 업데이트		 
+		/// Left, Right 키 입력시 실행
 		if (isLeftDown || isRightDown)
 		{
 			if (isLeftDown)
@@ -239,36 +240,40 @@ int main()
 			}
 		}
 
+		/// 위치 설정들
 		if (!isPause)
 		{
 			for (int i = 0; i < 5; i++)
 			{
 				posCloudBee[i] = spriteCloudBee[i].getPosition();
-				posCloudBee[i] += dirCloudBee[i] * speedCloudBee[i] * deltaTime;
-				spriteCloudBee[i].setPosition(posCloudBee[i]);
 				random = (float)rand() / RAND_MAX;
-
-				if (i < 3) // 구름
+				// 구름 
+				if (i < 3) 
 				{
-					if (posCloudBee[i].x < -100 || posCloudBee[i].x > 1920 + 100)
+					if (posCloudBee[i].x < -400 || posCloudBee[i].x > 1920 + 400)
 					{
 						if (random < 0.5f)
 						{
 							dirCloudBee[i] = { 1.0f,0.0f };
 							spriteCloudBee[i].setPosition(0, textureCloud.getSize().y * i);
+							posCloudBee[i] = spriteCloudBee[i].getPosition();
 							spriteCloudBee[i].setScale(-1.0f, 1.0f);
 						}
 						else
 						{
 							dirCloudBee[i] = { -1.0f,0.0f };
 							spriteCloudBee[i].setPosition(1920, textureCloud.getSize().y * i);
+							posCloudBee[i] = spriteCloudBee[i].getPosition();
 							spriteCloudBee[i].setScale(1.0f, 1.0f);
 						}
 					}
+
+					posCloudBee[i] += dirCloudBee[i] * speedCloudBee[i] * deltaTime;
 				}
 				else
 				{
-					if (i == 3) // 포물선 벌
+					// 포물선 벌
+					if (i == 3) 
 					{
 						if (posCloudBee[i].x < -100 || posCloudBee[i].x > 1920 + 100)
 						{
@@ -276,22 +281,26 @@ int main()
 							{
 								dirCloudBee[i] = { 1.0f,-1.0f };
 								spriteCloudBee[i].setPosition(0, 800);
+								posCloudBee[i] = spriteCloudBee[i].getPosition();
 								spriteCloudBee[i].setScale(-1.0f, 1.0f);
+								t = 0;
 							}
 							else
 							{
 								dirCloudBee[i] = { -1.0f,-1.0f };
 								spriteCloudBee[i].setPosition(1920, 800);
+								posCloudBee[i] = spriteCloudBee[i].getPosition();
 								spriteCloudBee[i].setScale(1.0f, 1.0f);
+								t = 0;
 							}
 						}
 
-						if (posCloudBee[i].y < 550 || posCloudBee[i].y > 810)
-						{
-							dirCloudBee[i].y *= -1;
-						}
+						posCloudBee[i].x += dirCloudBee[i].x * speedCloudBee[i] * deltaTime;
+						posCloudBee[i].y += dirCloudBee[i].y * speedCloudBee[i] * sinf(t) * deltaTime;
+						t += 2 * deltaTime;
 					}
-					else // 랜덤움직임 벌
+					// 랜덤움직임 벌
+					else 
 					{
 						beeStopTime += deltaTime;
 
@@ -309,12 +318,14 @@ int main()
 								{
 									dirCloudBee[i] = { 1.0f,-1.0f };
 									spriteCloudBee[i].setPosition(0, 800);
+									posCloudBee[i] = spriteCloudBee[i].getPosition();
 									spriteCloudBee[i].setScale(-1.0f, 1.0f);
 								}
 								else
 								{
 									dirCloudBee[i] = { -1.0f,-1.0f };
 									spriteCloudBee[i].setPosition(1920, 800);
+									posCloudBee[i] = spriteCloudBee[i].getPosition();
 									spriteCloudBee[i].setScale(1.0f, 1.0f);
 								}
 							}
@@ -328,8 +339,11 @@ int main()
 							dirCloudBee[i].x = 0;
 							dirCloudBee[i].y = 0;
 						}
+
+						posCloudBee[i] += dirCloudBee[i] * speedCloudBee[i] * deltaTime;
 					}
 				}
+				spriteCloudBee[i].setPosition(posCloudBee[i]);
 			}
 		}
 
