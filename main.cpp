@@ -2,6 +2,8 @@
 #include <ctime>
 #include <cstdlib>
 
+enum class Side { LEFT, RIGHT, NONE };
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Timber!");
@@ -16,6 +18,10 @@ int main()
     textureBee.loadFromFile("graphics/bee.png");
     sf::Texture textureCloud;
     textureCloud.loadFromFile("graphics/cloud.png");
+    sf::Texture texturePlayer;
+    texturePlayer.loadFromFile("graphics/player.png");
+    sf::Texture textureBranch;
+    textureBranch.loadFromFile("graphics/branch.png");
 
     // 
 
@@ -26,57 +32,75 @@ int main()
     spriteTree.setTexture(textureTree);
     spriteTree.setPosition(810, 0);
 
-    sf::Sprite sprite_CloudBee[5];
-    sf::Vector2f dir_CloudBee[5];
-    float speed_CloudBee[5];
-    float random_CloudBee[5];
+    // 0, 1, 2 : ±¸¸§   3 : Æ÷¹°¼± ¹ú   4 : ·£´ý ¿òÁ÷ÀÓ ¹ú
+    sf::Sprite spriteCloudBee[5];
+    sf::Vector2f dirCloudBee[5];
+    sf::Vector2f posCloudBee[5];
+    float speedCloudBee[5];
+    float random;
 
     for (int i = 0; i < 5; i++)
     {
-        random_CloudBee[i] = (float)rand() / RAND_MAX;
+        random = (float)rand() / RAND_MAX;
 
-        if (i < 3)
+        if (i < 3) // ±¸¸§
         {
-            sprite_CloudBee[i].setTexture(textureCloud);
-            sprite_CloudBee[i].setPosition(0, textureCloud.getSize().y * i);
-            speed_CloudBee[i] = 300 + 150 * i;
-            if (random_CloudBee[i] < 0.5f)
+            spriteCloudBee[i].setTexture(textureCloud);
+            spriteCloudBee[i].setPosition(0, textureCloud.getSize().y * i);
+            speedCloudBee[i] = 300 + 150 * i;
+            if (random < 0.5f)
             {
-                dir_CloudBee[i] = { 1.0f,0.0f };
-                sprite_CloudBee[i].setScale(-1.0f, 1.0f);
+                dirCloudBee[i] = { 1.0f,0.0f };
+                spriteCloudBee[i].setScale(-1.0f, 1.0f);
             }
             else
             {
-                dir_CloudBee[i] = { -1.0f,0.0f };
-                sprite_CloudBee[i].setScale(1.0f, 1.0f);
+                dirCloudBee[i] = { -1.0f,0.0f };
+                spriteCloudBee[i].setScale(1.0f, 1.0f);
             }
         }
         else
         {
-            sprite_CloudBee[i].setTexture(textureBee);
-            if (i == 3)
+            spriteCloudBee[i].setTexture(textureBee);
+            if (i == 3) // Æ÷¹°¼± ¹ú
             {
-                sprite_CloudBee[i].setPosition(0, 800);
-                speed_CloudBee[i] = 250.f;
-                if (random_CloudBee[i] < 0.5f)
+                spriteCloudBee[i].setPosition(0, 800);
+                speedCloudBee[i] = 250.f;
+                if (random < 0.5f)
                 {
-                    dir_CloudBee[i] = { 1.0f,-1.0f };
-                    sprite_CloudBee[i].setScale(-1.0f, 1.0f);
+                    dirCloudBee[i] = { 1.0f,-1.0f };
+                    spriteCloudBee[i].setScale(-1.0f, 1.0f);
                 }
                 else
                 {
-                    dir_CloudBee[i] = { -1.0f,-1.0f };
-                    sprite_CloudBee[i].setScale(1.0f, 1.0f);
+                    dirCloudBee[i] = { -1.0f,-1.0f };
+                    spriteCloudBee[i].setScale(1.0f, 1.0f);
                 }
             }
-            else
+            else // ·£´ý¿òÁ÷ÀÓ ¹ú
             {
-                sprite_CloudBee[i].setPosition(900, 800);
-                sprite_CloudBee[i].setOrigin(textureBee.getSize().x * 0.5f, textureBee.getSize().y * 0.5f);
-                speed_CloudBee[i] = 2500.f;
-                dir_CloudBee[i] = { 1.0f,-1.0f };
+                spriteCloudBee[i].setPosition(900, 800);
+                spriteCloudBee[i].setOrigin(textureBee.getSize().x * 0.5f, textureBee.getSize().y * 0.5f);
+                speedCloudBee[i] = 2500.f;
+                dirCloudBee[i] = { 1.0f,-1.0f };
             }
         }
+    }
+
+    sf::Sprite spritePlayer;
+    spritePlayer.setTexture(texturePlayer);
+    spritePlayer.setOrigin(texturePlayer.getSize().x * 0.5f - textureTree.getSize().x, texturePlayer.getSize().y);
+    spritePlayer.setPosition(1920 * 0.5f, 925.f);
+    Side sidePlayer = Side::LEFT;
+
+    const int NUM_BRANCHES = 6;
+    sf::Sprite spriteBranch[NUM_BRANCHES];
+    Side sideBranch[NUM_BRANCHES] = { Side::LEFT,Side::RIGHT, Side::NONE, Side::LEFT, Side::RIGHT, Side::NONE };
+    for (int i = 0; i < NUM_BRANCHES; i++)
+    {
+        spriteBranch[i].setTexture(textureBranch);
+        spriteBranch[i].setOrigin(textureTree.getSize().x * -0.5f, 0.f);
+        spriteBranch[i].setPosition(1920.f * 0.5, i * 150.f);        
     }
 
     srand((int)time(0));
@@ -96,29 +120,28 @@ int main()
         }
         
         // ¾÷µ¥ÀÌÆ®
-        sf::Vector2f pos_CloudBee[5];
         for (int i = 0; i < 5; i++)
         {
-            pos_CloudBee[i] = sprite_CloudBee[i].getPosition();
-            pos_CloudBee[i] += dir_CloudBee[i] * speed_CloudBee[i] * deltaTime;
-            sprite_CloudBee[i].setPosition(pos_CloudBee[i]);
-            random_CloudBee[i] = (float)rand() / RAND_MAX;
+            posCloudBee[i] = spriteCloudBee[i].getPosition();
+            posCloudBee[i] += dirCloudBee[i] * speedCloudBee[i] * deltaTime;
+            spriteCloudBee[i].setPosition(posCloudBee[i]);
+            random = (float)rand() / RAND_MAX;
 
-            if (i < 3)
+            if (i < 3) // ±¸¸§
             {
-                if (pos_CloudBee[i].x < -100 || pos_CloudBee[i].x > 1920 + 100)
+                if (posCloudBee[i].x < -100 || posCloudBee[i].x > 1920 + 100)
                 {
-                    if (random_CloudBee[i] < 0.5f)
+                    if (random < 0.5f)
                     {
-                        dir_CloudBee[i] = { 1.0f,0.0f };
-                        sprite_CloudBee[i].setPosition(0, textureCloud.getSize().y * i);
-                        sprite_CloudBee[i].setScale(-1.0f, 1.0f);
+                        dirCloudBee[i] = { 1.0f,0.0f };
+                        spriteCloudBee[i].setPosition(0, textureCloud.getSize().y * i);
+                        spriteCloudBee[i].setScale(-1.0f, 1.0f);
                     }
                     else
                     {
-                        dir_CloudBee[i] = { -1.0f,0.0f };
-                        sprite_CloudBee[i].setPosition(1920, textureCloud.getSize().y * i);
-                        sprite_CloudBee[i].setScale(1.0f, 1.0f);
+                        dirCloudBee[i] = { -1.0f,0.0f };
+                        spriteCloudBee[i].setPosition(1920, textureCloud.getSize().y * i);
+                        spriteCloudBee[i].setScale(1.0f, 1.0f);
                     }
                 }
             }
@@ -126,63 +149,101 @@ int main()
             {
                 if (i == 3) // Æ÷¹°¼± ¹ú
                 {
-                    if (pos_CloudBee[i].x < -100 || pos_CloudBee[i].x > 1920 + 100)
+                    if (posCloudBee[i].x < -100 || posCloudBee[i].x > 1920 + 100)
                     {
-                        if (random_CloudBee[i] < 0.5f)
+                        if (random < 0.5f)
                         {
-                            dir_CloudBee[i] = { 1.0f,-1.0f };
-                            sprite_CloudBee[i].setPosition(0, 800);
-                            sprite_CloudBee[i].setScale(1.0f, 1.0f);
+                            dirCloudBee[i] = { 1.0f,-1.0f };
+                            spriteCloudBee[i].setPosition(0, 800);
+                            spriteCloudBee[i].setScale(-1.0f, 1.0f);
                         }
                         else
                         {
-                            dir_CloudBee[i] = { -1.0f,-1.0f };
-                            sprite_CloudBee[i].setPosition(1920, 800);
-                            sprite_CloudBee[i].setScale(1.0f, 1.0f);
+                            dirCloudBee[i] = { -1.0f,-1.0f };
+                            spriteCloudBee[i].setPosition(1920, 800);
+                            spriteCloudBee[i].setScale(1.0f, 1.0f);
                         }
                     }
-                    if (pos_CloudBee[i].y < 550 || pos_CloudBee[i].y >810)
+
+                    if (posCloudBee[i].y < 550 || posCloudBee[i].y > 810)
                     {
-                        dir_CloudBee[i].y *= -1;
+                        dirCloudBee[i].y *= -1;
                     }
                 }
                 else // ·£´ý¿òÁ÷ÀÓ ¹ú
                 {
-                    dir_CloudBee[i].x = (float)(rand() % 3 - 1) * 3;
-                    if (dir_CloudBee[i].x > 0) sprite_CloudBee[i].setScale(-1.0f, 1.0f);
-                    else sprite_CloudBee[i].setScale(1.0f, 1.0f);
-                    dir_CloudBee[i].y = (float)(rand() % 3 - 1);
+                    dirCloudBee[i].x = (float)(rand() % 3 - 1) * 3;
+                    dirCloudBee[i].y = (float)(rand() % 3 - 1);
+                    if (dirCloudBee[i].x > 0) spriteCloudBee[i].setScale(-1.0f, 1.0f);
+                    else spriteCloudBee[i].setScale(1.0f, 1.0f);
 
-                    if (pos_CloudBee[i].x < -100 || pos_CloudBee[i].x > 1920 + 100)
+                    if (posCloudBee[i].x < -100 || posCloudBee[i].x > 1920 + 100)
                     {
-                        if (random_CloudBee[i] < 0.5f)
+                        if (random < 0.5f)
                         {
-                            dir_CloudBee[i] = { 1.0f,-1.0f };
-                            sprite_CloudBee[i].setPosition(0, 800);
-                            sprite_CloudBee[i].setScale(-1.0f, 1.0f);
+                            dirCloudBee[i] = { 1.0f,-1.0f };
+                            spriteCloudBee[i].setPosition(0, 800);
+                            spriteCloudBee[i].setScale(-1.0f, 1.0f);
                         }
                         else
                         {
-                            dir_CloudBee[i] = { -1.0f,-1.0f };
-                            sprite_CloudBee[i].setPosition(1920, 800);
-                            sprite_CloudBee[i].setScale(1.0f, 1.0f);
+                            dirCloudBee[i] = { -1.0f,-1.0f };
+                            spriteCloudBee[i].setPosition(1920, 800);
+                            spriteCloudBee[i].setScale(1.0f, 1.0f);
                         }
                     }
-                    if (pos_CloudBee[i].y < 200) dir_CloudBee[i].y = 1.0f;
-                    if (pos_CloudBee[i].y > 900) dir_CloudBee[i].y = -1.0f;
+
+                    if (posCloudBee[i].y < 200) dirCloudBee[i].y = 1.0f;
+                    if (posCloudBee[i].y > 900) dirCloudBee[i].y = -1.0f;
                 }
             }
         }
-                
+        
+        for (int i = 0; i < NUM_BRANCHES; i++)
+        {
+            switch (sideBranch[i])
+            {
+                case Side::LEFT:
+                    spriteBranch[i].setScale(-1.f, 1.f);
+                    break;
+                case Side::RIGHT:
+                    spriteBranch[i].setScale(1.f, 1.f);
+                    break;
+            }
+        }
+
+        switch (sidePlayer)
+        {
+            case Side::LEFT:
+                spritePlayer.setScale(-1.f, 1.f);
+                break;
+            case Side::RIGHT:
+                spritePlayer.setScale(1.f, 1.f);
+                break;
+        }
+
         // ±×¸®±â
         window.clear();
+
         window.draw(spriteBackground);
-        window.draw(sprite_CloudBee[0]);
-        window.draw(sprite_CloudBee[1]);
-        window.draw(sprite_CloudBee[2]);
+        for (int i = 0; i < 3; i++)
+        {
+            window.draw(spriteCloudBee[i]);
+        }
         window.draw(spriteTree);
-        window.draw(sprite_CloudBee[3]);
-        window.draw(sprite_CloudBee[4]);
+        for (int i = 0; i < NUM_BRANCHES; i++)
+        {
+            if (sideBranch[i] != Side::NONE)
+            {
+                window.draw(spriteBranch[i]);
+            }
+        }
+        for (int i = 3; i < 5; i++)
+        {
+            window.draw(spriteCloudBee[i]);
+        }        
+        window.draw(spritePlayer);
+
         window.display();
     }
 
