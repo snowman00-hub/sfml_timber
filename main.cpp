@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <ctime>
 #include <cstdlib>
 
@@ -47,9 +48,18 @@ int main()
 	textureBranch.loadFromFile("graphics/branch.png");
 	sf::Texture textureAxe;
 	textureAxe.loadFromFile("graphics/axe.png");
+	sf::Texture textureLog;
+	textureLog.loadFromFile("graphics/log.png");
 
 	sf::Font font;
 	font.loadFromFile("fonts/KOMIKAP_.ttf");
+
+	sf::SoundBuffer bufferChop;
+	bufferChop.loadFromFile("sound/chop.wav");
+	sf::SoundBuffer bufferDeath;
+	bufferChop.loadFromFile("sound/death.wav");
+	sf::SoundBuffer bufferOutOfTime;
+	bufferChop.loadFromFile("sound/out_of_time.wav");
 
 	// 그리기 객체
 
@@ -177,6 +187,21 @@ int main()
 			break;
 	}
 
+	sf::Sprite testLog;
+	testLog.setTexture(textureLog);
+	testLog.setOrigin(textureLog.getSize().x * 0.5f, textureLog.getSize().y);
+	sf::Vector2f logInitPosition = spriteTree.getPosition();
+	logInitPosition.x += textureTree.getSize().x * 0.5f;
+	logInitPosition.y = textureTree.getSize().y;
+	testLog.setPosition(logInitPosition);
+
+	bool isActiveTestLog = false;
+	sf::Vector2f testLogDirection = { 1.f,-1.f };
+	float testLogSpeed = 2000.f;	
+
+	sf::Vector2f gravity = { 0.f,6000.f };
+	sf::Vector2f testLogVelocity = testLogDirection * testLogSpeed;
+
 	/// UI
 	sf::Text textScore;
 	textScore.setFont(font);
@@ -202,6 +227,14 @@ int main()
 	timeBar.setSize({ timeBarWidth, timeBarHeight });
 	timeBar.setFillColor(sf::Color::Red);
 	timeBar.setPosition(1920.f * 0.5f - timeBarWidth * 0.5f, 1080.f - 125.f);
+
+	/// 소리 객체
+	sf::Sound soundChop;
+	soundChop.setBuffer(bufferChop);
+	sf::Sound soundDeath;
+	soundDeath.setBuffer(bufferDeath);
+	sf::Sound soundOutOfTime;
+	soundOutOfTime.setBuffer(bufferOutOfTime);
 
 	/// 게임 데이터
 	bool isPlaying = false;
@@ -271,17 +304,12 @@ int main()
 							// 플레이에서 정지로
 							if (!isPlaying)
 							{
-								if (isStarted)
-								{
-
-									textMessage.setString("Press Enter to resume!");
-								}
-								else
-								{
-									textMessage.setString("Press Enter to start!");
-								}
+								textMessage.setString("Press Enter to resume!");
+								messageOrigin.x = textMessage.getLocalBounds().width * 0.5f;
+								messageOrigin.y = textMessage.getLocalBounds().height * 0.5f;
+								textMessage.setOrigin(messageOrigin);
 							}
-							// 정지에서 플레이로
+							// 정지에서 플레이로, 재시작
 							else
 							{
 								if (remainTime == 0.f || sidePlayer == sideBranch[NUM_BRANCHES - 1])
@@ -317,12 +345,17 @@ int main()
 				remainTime = 0.f;
 				isPlaying = false;
 				textMessage.setString("Press Enter to Restart!");
+				soundOutOfTime.play();
 			}
 			timeBar.setSize({ timeBarSpeed * remainTime, timeBarHeight });
  
 			/// Left, Right 키 입력시 실행
 			if (isLeftDown || isRightDown)
 			{
+				isActiveTestLog = true;
+				testLog.setPosition(logInitPosition);
+				testLogVelocity = testLogDirection * testLogSpeed;
+
 				if (isLeftDown)
 				{
 					sidePlayer = Side::LEFT;
@@ -332,12 +365,14 @@ int main()
 					sidePlayer = Side::RIGHT;
 				}
 				updateBranches(sideBranch, NUM_BRANCHES);
+				soundChop.play();
 
 				if (sidePlayer == sideBranch[NUM_BRANCHES - 1])
 				{
 					isPlaying = false;
 					textScore.setString("SCORE: " + std::to_string(score));
 					textMessage.setString("Press Enter to Restart!");
+					soundDeath.play();
 				}
 				else
 				{
@@ -474,6 +509,15 @@ int main()
 					spriteAxe.setScale(1.f, 1.f);
 					break;
 			}
+		
+			if (isActiveTestLog)
+			{
+				testLogVelocity += gravity * deltaTime;
+
+				sf::Vector2f position = testLog.getPosition();
+				position += testLogVelocity * deltaTime;
+				testLog.setPosition(position);
+			}
 		}
 
 		// 그리기
@@ -497,6 +541,7 @@ int main()
 		{
 			window.draw(spriteCloudBee[i]);
 		}
+		window.draw(testLog);
 		window.draw(spritePlayer);
 		if ((isLeft || isRight) && isPlaying)
 		{
