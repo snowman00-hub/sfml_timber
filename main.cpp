@@ -185,23 +185,16 @@ int main()
 	textScore.setFillColor(sf::Color::White);
 	textScore.setPosition(20, 20);
 
-	sf::Text textStart;
-	textStart.setFont(font);
-	textStart.setString("Press Enter to start!");
-	textStart.setCharacterSize(60);
-	textStart.setPosition(570, 400);
-
-	sf::Text textResume;
-	textResume.setFont(font);
-	textResume.setString("Press Enter to resume!");
-	textResume.setCharacterSize(60);
-	textResume.setPosition(570, 400);
-
-	sf::Text textRestart;
-	textRestart.setFont(font);
-	textRestart.setString("Press Enter to restart!");
-	textRestart.setCharacterSize(60);
-	textRestart.setPosition(550, 400);
+	sf::Text textMessage;
+	textMessage.setFont(font);
+	textMessage.setString("Press Enter to start!");
+	textMessage.setCharacterSize(70);
+	textMessage.setFillColor(sf::Color::White);
+	textMessage.setPosition(1920.f * 0.5f, 1080 * 0.3f);
+	sf::Vector2f messageOrigin;
+	messageOrigin.x = textMessage.getLocalBounds().width * 0.5f;
+	messageOrigin.y = textMessage.getLocalBounds().height * 0.5f;
+	textMessage.setOrigin(messageOrigin);
 
 	sf::RectangleShape timeBar;
 	float timeBarWidth = 400;
@@ -212,9 +205,7 @@ int main()
 
 	/// 게임 데이터
 	bool isPlaying = false;
-	bool isStart = false;
-	bool isTimeOver = false;
-	bool isRestart = false;
+	bool isStarted = false;
 	int score = 0;
 	float remainTime = 5.f;
 	float timeBarSpeed = timeBarWidth / 5.f;
@@ -277,13 +268,36 @@ int main()
 							break;
 						case sf::Keyboard::Return:
 							isPlaying = !isPlaying;
-							if (!isStart)
+							// 플레이에서 정지로
+							if (!isPlaying)
 							{
-								isStart = true;
+								if (isStarted)
+								{
+
+									textMessage.setString("Press Enter to resume!");
+								}
+								else
+								{
+									textMessage.setString("Press Enter to start!");
+								}
 							}
-							if (isTimeOver)
+							// 정지에서 플레이로
+							else
 							{
-								isRestart = true;
+								if (remainTime == 0.f || sidePlayer == sideBranch[NUM_BRANCHES - 1])
+								{
+									score = 0;
+									textScore.setString("SCORE: " + std::to_string(score));
+									textMessage.setString("Press Enter to restart!");
+									remainTime = 5.f;
+									sideBranch[NUM_BRANCHES - 1] = Side::NONE;
+									isStarted = false;
+								}
+							}
+
+							if (!isStarted)
+							{
+								isStarted = true;
 							}
 							break;
 					}
@@ -302,7 +316,7 @@ int main()
 			{
 				remainTime = 0.f;
 				isPlaying = false;
-				isTimeOver = true;
+				textMessage.setString("Press Enter to Restart!");
 			}
 			timeBar.setSize({ timeBarSpeed * remainTime, timeBarHeight });
  
@@ -323,6 +337,7 @@ int main()
 				{
 					isPlaying = false;
 					textScore.setString("SCORE: " + std::to_string(score));
+					textMessage.setString("Press Enter to Restart!");
 				}
 				else
 				{
@@ -461,38 +476,6 @@ int main()
 			}
 		}
 
-		if (isRestart)
-		{
-			isPlaying = true;
-			isStart = false;
-			isTimeOver = false;
-			isRestart = false;
-			score = 0;
-			remainTime = 5.f;
-			for (int i = 0; i < NUM_BRANCHES; i++)
-			{
-				spriteBranch[i].setTexture(textureBranch);
-				spriteBranch[i].setOrigin(textureTree.getSize().x * -0.5f, 0.f);
-				spriteBranch[i].setPosition(1920.f * 0.5, i * 150.f);
-
-				int r = rand() % 3;
-				switch (r)
-				{
-					case 0:
-						sideBranch[i] = Side::LEFT;
-						break;
-					case 1:
-						sideBranch[i] = Side::RIGHT;
-						break;
-					case 2:
-						sideBranch[i] = Side::NONE;
-						break;
-				}
-			}
-			sideBranch[NUM_BRANCHES - 1] = Side::NONE;
-			textScore.setString("SCORE: " + std::to_string(score));
-		}
-
 		// 그리기
 		window.clear();
 
@@ -524,21 +507,7 @@ int main()
 		window.draw(textScore);
 		if (!isPlaying)
 		{
-			if (isTimeOver)
-			{
-				window.draw(textRestart);
-			}
-			else
-			{
-				if (!isStart)
-				{
-					window.draw(textStart);
-				}
-				else
-				{
-					window.draw(textResume);
-				}
-			}
+			window.draw(textMessage);
 		}
 		window.draw(timeBar);
 		
