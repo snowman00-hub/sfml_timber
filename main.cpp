@@ -187,20 +187,24 @@ int main()
 			break;
 	}
 
-	sf::Sprite testLog;
-	testLog.setTexture(textureLog);
-	testLog.setOrigin(textureLog.getSize().x * 0.5f, textureLog.getSize().y);
+	int indexLog = 0;
+	float speedLog = 2000.f;
+	sf::Vector2f gravity = { 0.f,6000.f };
 	sf::Vector2f logInitPosition = spriteTree.getPosition();
 	logInitPosition.x += textureTree.getSize().x * 0.5f;
 	logInitPosition.y = textureTree.getSize().y;
-	testLog.setPosition(logInitPosition);
 
-	bool isActiveTestLog = false;
-	sf::Vector2f testLogDirection = { 1.f,-1.f };
-	float testLogSpeed = 2000.f;	
-
-	sf::Vector2f gravity = { 0.f,6000.f };
-	sf::Vector2f testLogVelocity = testLogDirection * testLogSpeed;
+	sf::Sprite spriteLogs[10];
+	bool isActiveLog[10];
+	sf::Vector2f dirLog[10];
+	sf::Vector2f velocityLog[10];	
+	for (int i = 0; i < 10; i++)
+	{
+		spriteLogs[i].setTexture(textureLog);
+		spriteLogs[i].setOrigin(textureLog.getSize().x * 0.5f, textureLog.getSize().y);
+		spriteLogs[i].setPosition(logInitPosition);
+		isActiveLog[i] = false;
+	}
 
 	/// UI
 	sf::Text textScore;
@@ -352,18 +356,24 @@ int main()
 			/// Left, Right 키 입력시 실행
 			if (isLeftDown || isRightDown)
 			{
-				isActiveTestLog = true;
-				testLog.setPosition(logInitPosition);
-				testLogVelocity = testLogDirection * testLogSpeed;
+				isActiveLog[indexLog] = true;
+				spriteLogs[indexLog].setPosition(logInitPosition);
 
 				if (isLeftDown)
 				{
 					sidePlayer = Side::LEFT;
+					dirLog[indexLog] = { 1.f,-1.f };
 				}
+
 				if (isRightDown)
 				{
 					sidePlayer = Side::RIGHT;
+					dirLog[indexLog] = { -1.f,-1.f };
 				}
+
+				velocityLog[indexLog] = dirLog[indexLog] * speedLog;
+				indexLog = (indexLog + 1) % 10;
+
 				updateBranches(sideBranch, NUM_BRANCHES);
 				soundChop.play();
 
@@ -509,14 +519,16 @@ int main()
 					spriteAxe.setScale(1.f, 1.f);
 					break;
 			}
-		
-			if (isActiveTestLog)
+			
+			for (int i = 0; i < 10; i++)
 			{
-				testLogVelocity += gravity * deltaTime;
-
-				sf::Vector2f position = testLog.getPosition();
-				position += testLogVelocity * deltaTime;
-				testLog.setPosition(position);
+				if (isActiveLog[i])
+				{
+					velocityLog[i] += gravity * deltaTime;
+					sf::Vector2f position = spriteLogs[i].getPosition();
+					position += velocityLog[i] * deltaTime;
+					spriteLogs[i].setPosition(position);
+				}
 			}
 		}
 
@@ -537,15 +549,20 @@ int main()
 				window.draw(spriteBranch[i]);
 			}
 		}
-		for (int i = 3; i < 5; i++)
+		// 로그
+		for (int i = 0; i < 10; i++)
 		{
-			window.draw(spriteCloudBee[i]);
+			window.draw(spriteLogs[i]);
 		}
-		window.draw(testLog);
+
 		window.draw(spritePlayer);
 		if ((isLeft || isRight) && isPlaying)
 		{
 			window.draw(spriteAxe);
+		}
+		for (int i = 3; i < 5; i++)
+		{
+			window.draw(spriteCloudBee[i]);
 		}
 
 		/// UI
