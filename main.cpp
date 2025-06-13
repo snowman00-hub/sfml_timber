@@ -16,6 +16,7 @@ int main()
     sf::Clock clock;
     sf::Time time;
     int random;    
+
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "RemakeTimber");
 
     // 府家胶
@@ -27,6 +28,8 @@ int main()
     textureTree.loadFromFile("graphics/tree.png");
     sf::Texture textureBee;
     textureBee.loadFromFile("graphics/bee.png");
+    sf::Texture textureBranch;
+    textureBranch.loadFromFile("graphics/branch.png");
 
     // 府家胶 角青按眉
     sf::Sprite spriteBackground;
@@ -55,6 +58,31 @@ int main()
     float speedBee = 150.f;
     float timeBee = 0;
     InitBee(&sideBee, &spriteBee, &dirBee);
+
+    sf::Sprite spriteBranch[6];
+    Side sideBranch[6];
+    for (int i = 0; i < 6; i++)
+    {
+        spriteBranch[i].setTexture(textureBranch);
+        spriteBranch[i].setOrigin(-150.f, 0);
+        spriteBranch[i].setPosition(1920 * 0.5f, 150.f * i);
+        int random = rand() % 3;
+        switch (random)
+        {
+            case 0:
+                sideBranch[i] = Side::LEFT;
+                spriteBranch[i].setScale(-1.f, 1.f);
+                break;
+            case 1:
+                sideBranch[i] = Side::RIGHT;
+                spriteBranch[i].setScale(1.f, 1.f);
+                break;
+            case 2:
+                sideBranch[i] = Side::NONE;                
+                break;
+        }
+    }
+    sideBranch[5] = Side::NONE;
     
     // 扩档快 角青
     while (window.isOpen())
@@ -83,6 +111,13 @@ int main()
             window.draw(spriteCloud[i]);
         }       
         window.draw(spriteTree);
+        for (int i = 0; i < 6; i++)
+        {
+            if (sideBranch[i] != Side::NONE)
+            {
+                window.draw(spriteBranch[i]);
+            }
+        }
         window.draw(spriteBee);
 
         window.display();
