@@ -5,6 +5,10 @@
 enum class Side { LEFT, RIGHT, NONE };
 
 void InitCloud(Side* side, sf::Sprite* sprite, sf::Vector2f* dir, sf::Texture* texture, int random);
+void InitBee(Side* side, sf::Sprite* sprite, sf::Vector2f* dir);
+
+void UpdateCloud(Side sideCloud[], sf::Sprite spriteCloud[], sf::Vector2f dirCloud[], float speedCloud[], sf::Texture* textureCloud, float deltatime);
+void UpdateBee(Side* sideBee, sf::Sprite* spriteBee, sf::Vector2f* dirBee, float speedBee, float* timeBee, float deltatime);
 
 int main()
 {
@@ -46,22 +50,11 @@ int main()
     sf::Sprite spriteBee;
     spriteBee.setTexture(textureBee);
     spriteBee.setOrigin(textureBee.getSize().x * 0.5f, textureBee.getSize().y * 0.5f);
-    spriteBee.setPosition(500, 800);
     Side sideBee;
     sf::Vector2f dirBee;
-    float speedBee = 300.f;
-    if (rand() % 2)
-    {
-        sideBee = Side::LEFT;
-        dirBee = { -1.f,-1.f };
-        spriteBee.setScale(1.f, 1.f);
-    }
-    else
-    {
-        sideBee = Side::RIGHT;
-        dirBee = { 1.f,-1.f };
-        spriteBee.setScale(-1.f, 1.f);
-    }
+    float speedBee = 150.f;
+    float timeBee = 0;
+    InitBee(&sideBee, &spriteBee, &dirBee);
     
     // 윈도우 실행
     while (window.isOpen())
@@ -78,26 +71,8 @@ int main()
         }
 
         // 업데이트
-        for (int i = 0; i < 3; i++)
-        {
-            sf::Vector2f position = spriteCloud[i].getPosition();
-            position += speedCloud[i] * dirCloud[i] * deltatime;
-            spriteCloud[i].setPosition(position);
-
-            if (position.x < -200 || position.x > 1920 + 200)
-            {
-                InitCloud(&sideCloud[i], &spriteCloud[i], &dirCloud[i], &textureCloud, i);
-            }
-        }
-        
-        sf::Vector2f posBee = spriteBee.getPosition();
-        posBee += speedBee * dirBee * deltatime;
-        spriteBee.setPosition(posBee);
-        if (posBee.x < 0 - 100 || posBee.y > 1920 + 100)
-        {
-
-        }
-        if (posBee.y < 600 || posBee.y > 900) dirBee.y *= -1;
+        UpdateCloud(sideCloud, spriteCloud, dirCloud, speedCloud, &textureCloud, deltatime);
+        UpdateBee(&sideBee, &spriteBee, &dirBee, speedBee, &timeBee, deltatime);
 
         // 그리기
         window.clear();
@@ -114,6 +89,53 @@ int main()
     }
 
     return 0;
+}
+
+void UpdateBee(Side* sideBee, sf::Sprite* spriteBee, sf::Vector2f* dirBee, float speedBee, float* timeBee, float deltatime)
+{
+    sf::Vector2f posBee = spriteBee->getPosition();
+    posBee.x += speedBee * dirBee->x * deltatime;
+    posBee.y += speedBee * dirBee->y * sinf(*timeBee) * deltatime;
+    *timeBee += deltatime;
+    spriteBee->setPosition(posBee);
+    if (posBee.x < 0 - 100 || posBee.x > 1920 + 100)
+    {
+        InitBee(sideBee, spriteBee, dirBee);
+        timeBee = 0;
+    }
+}
+
+void UpdateCloud(Side sideCloud[], sf::Sprite spriteCloud[], sf::Vector2f dirCloud[], float speedCloud[], sf::Texture* textureCloud, float deltatime)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        sf::Vector2f position = spriteCloud[i].getPosition();
+        position += speedCloud[i] * dirCloud[i] * deltatime;
+        spriteCloud[i].setPosition(position);
+
+        if (position.x < -200 || position.x > 1920 + 200)
+        {
+            InitCloud(&sideCloud[i], &spriteCloud[i], &dirCloud[i], textureCloud, i);
+        }
+    }
+}
+
+void InitBee(Side* side, sf::Sprite* sprite, sf::Vector2f* dir)
+{
+    if (rand() % 2)
+    {
+        *side = Side::LEFT;
+        *dir = { -1.f,-1.f };
+        sprite->setScale(1.f, 1.f);
+        sprite->setPosition(1920 + 50, 900);
+    }
+    else
+    {
+        *side = Side::RIGHT;
+        *dir = { 1.f,-1.f };
+        sprite->setScale(-1.f, 1.f);
+        sprite->setPosition(0 - 50, 900);
+    }
 }
 
 void InitCloud(Side* side, sf::Sprite* sprite, sf::Vector2f* dir, sf::Texture* texture, int i)
