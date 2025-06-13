@@ -51,7 +51,7 @@ int main()
 	sf::Font font;
 	font.loadFromFile("fonts/KOMIKAP_.ttf");
 
-	// 
+	// 그리기 객체
 
 	sf::Sprite spriteBackground;
 	spriteBackground.setTexture(textureBackground);
@@ -153,7 +153,31 @@ int main()
 	}
 	sideBranch[NUM_BRANCHES - 1] = Side::NONE;
 
-	// UI
+	for (int i = 0; i < NUM_BRANCHES; i++)
+	{
+		switch (sideBranch[i])
+		{
+			case Side::LEFT:
+				spriteBranch[i].setScale(-1.f, 1.f);
+				break;
+			case Side::RIGHT:
+				spriteBranch[i].setScale(1.f, 1.f);
+				break;
+		}
+	}
+	switch (sidePlayer)
+	{
+		case Side::LEFT:
+			spritePlayer.setScale(-1.f, 1.f);
+			spriteAxe.setScale(-1.f, 1.f);
+			break;
+		case Side::RIGHT:
+			spritePlayer.setScale(1.f, 1.f);
+			spriteAxe.setScale(1.f, 1.f);
+			break;
+	}
+
+	/// UI
 	sf::Text textScore;
 	textScore.setFont(font);
 	textScore.setString("SCORE: 0");
@@ -165,19 +189,19 @@ int main()
 	textStart.setFont(font);
 	textStart.setString("Press Enter to start!");
 	textStart.setCharacterSize(60);
-	textStart.setPosition(600, 400);
+	textStart.setPosition(570, 400);
 
 	sf::Text textResume;
 	textResume.setFont(font);
 	textResume.setString("Press Enter to resume!");
 	textResume.setCharacterSize(60);
-	textResume.setPosition(600, 400);
+	textResume.setPosition(570, 400);
 
 	sf::Text textRestart;
 	textRestart.setFont(font);
 	textRestart.setString("Press Enter to restart!");
 	textRestart.setCharacterSize(60);
-	textRestart.setPosition(600, 400);
+	textRestart.setPosition(550, 400);
 
 	sf::RectangleShape timeBar;
 	float timeBarWidth = 400;
@@ -186,10 +210,11 @@ int main()
 	timeBar.setFillColor(sf::Color::Red);
 	timeBar.setPosition(1920.f * 0.5f - timeBarWidth * 0.5f, 1080.f - 125.f);
 
-	// 게임 데이터
+	/// 게임 데이터
 	bool isPlaying = false;
 	bool isStart = false;
 	bool isTimeOver = false;
+	bool isRestart = false;
 	int score = 0;
 	float remainTime = 5.f;
 	float timeBarSpeed = timeBarWidth / 5.f;
@@ -256,6 +281,10 @@ int main()
 							{
 								isStart = true;
 							}
+							if (isTimeOver)
+							{
+								isRestart = true;
+							}
 							break;
 					}
 					break;
@@ -273,6 +302,7 @@ int main()
 			{
 				remainTime = 0.f;
 				isPlaying = false;
+				isTimeOver = true;
 			}
 			timeBar.setSize({ timeBarSpeed * remainTime, timeBarHeight });
  
@@ -292,7 +322,6 @@ int main()
 				if (sidePlayer == sideBranch[NUM_BRANCHES - 1])
 				{
 					isPlaying = false;
-					score = 0;
 					textScore.setString("SCORE: " + std::to_string(score));
 				}
 				else
@@ -431,11 +460,43 @@ int main()
 					break;
 			}
 		}
-		
+
+		if (isRestart)
+		{
+			isPlaying = true;
+			isStart = false;
+			isTimeOver = false;
+			isRestart = false;
+			score = 0;
+			remainTime = 5.f;
+			for (int i = 0; i < NUM_BRANCHES; i++)
+			{
+				spriteBranch[i].setTexture(textureBranch);
+				spriteBranch[i].setOrigin(textureTree.getSize().x * -0.5f, 0.f);
+				spriteBranch[i].setPosition(1920.f * 0.5, i * 150.f);
+
+				int r = rand() % 3;
+				switch (r)
+				{
+					case 0:
+						sideBranch[i] = Side::LEFT;
+						break;
+					case 1:
+						sideBranch[i] = Side::RIGHT;
+						break;
+					case 2:
+						sideBranch[i] = Side::NONE;
+						break;
+				}
+			}
+			sideBranch[NUM_BRANCHES - 1] = Side::NONE;
+			textScore.setString("SCORE: " + std::to_string(score));
+		}
+
 		// 그리기
 		window.clear();
 
-		// WORLD
+		/// WORLD
 		window.draw(spriteBackground);
 		for (int i = 0; i < 3; i++)
 		{
@@ -459,19 +520,25 @@ int main()
 			window.draw(spriteAxe);
 		}
 
-		// UI
+		/// UI
 		window.draw(textScore);
 		if (!isPlaying)
 		{
-			if (!isStart)
+			if (isTimeOver)
 			{
-				window.draw(textStart);
+				window.draw(textRestart);
 			}
 			else
 			{
-				window.draw(textResume);
+				if (!isStart)
+				{
+					window.draw(textStart);
+				}
+				else
+				{
+					window.draw(textResume);
+				}
 			}
-			//window.draw(textRestart);
 		}
 		window.draw(timeBar);
 		
