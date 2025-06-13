@@ -29,10 +29,10 @@ void updateBranches(Side* branches, int size)
 int main()
 {
 	srand((int)time(0));
+
 	sf::RenderWindow window(sf::VideoMode(1920, 1080), "Timber!");
 
-	// 
-
+	// 리소스
 	sf::Texture textureBackground;
 	textureBackground.loadFromFile("graphics/background.png");
 	sf::Texture textureTree;
@@ -47,6 +47,9 @@ int main()
 	textureBranch.loadFromFile("graphics/branch.png");
 	sf::Texture textureAxe;
 	textureAxe.loadFromFile("graphics/axe.png");
+
+	sf::Font font;
+	font.loadFromFile("fonts/KOMIKAP_.ttf");
 
 	// 
 
@@ -72,8 +75,8 @@ int main()
 	for (int i = 0; i < 5; i++)
 	{
 		random = (float)rand() / RAND_MAX;
-
-		if (i < 3) // 구름
+		// 구름
+		if (i < 3) 
 		{
 			spriteCloudBee[i].setTexture(textureCloud);
 			spriteCloudBee[i].setPosition(0, textureCloud.getSize().y * i);
@@ -92,7 +95,8 @@ int main()
 		else
 		{
 			spriteCloudBee[i].setTexture(textureBee);
-			if (i == 3) // 포물선 벌
+			// 포물선 벌
+			if (i == 3) 
 			{
 				spriteCloudBee[i].setPosition(0, 800);
 				speedCloudBee[i] = 250.f;
@@ -107,7 +111,8 @@ int main()
 					spriteCloudBee[i].setScale(1.0f, 1.0f);
 				}
 			}
-			else // 랜덤움직임 벌
+			// 랜덤움직임 벌
+			else 
 			{
 				spriteCloudBee[i].setPosition(900, 800);
 				spriteCloudBee[i].setOrigin(textureBee.getSize().x * 0.5f, textureBee.getSize().y * 0.5f);
@@ -148,11 +153,53 @@ int main()
 	}
 	sideBranch[NUM_BRANCHES - 1] = Side::NONE;
 
+	// UI
+	sf::Text textScore;
+	textScore.setFont(font);
+	textScore.setString("SCORE: 0");
+	textScore.setCharacterSize(100);
+	textScore.setFillColor(sf::Color::White);
+	textScore.setPosition(20, 20);
+
+	sf::Text textStart;
+	textStart.setFont(font);
+	textStart.setString("Press Enter to start!");
+	textStart.setCharacterSize(60);
+	textStart.setPosition(600, 400);
+
+	sf::Text textResume;
+	textResume.setFont(font);
+	textResume.setString("Press Enter to resume!");
+	textResume.setCharacterSize(60);
+	textResume.setPosition(600, 400);
+
+	sf::Text textRestart;
+	textRestart.setFont(font);
+	textRestart.setString("Press Enter to restart!");
+	textRestart.setCharacterSize(60);
+	textRestart.setPosition(600, 400);
+
+	sf::RectangleShape timeBar;
+	float timeBarWidth = 400;
+	float timeBarHeight = 80;
+	timeBar.setSize({ timeBarWidth, timeBarHeight });
+	timeBar.setFillColor(sf::Color::Red);
+	timeBar.setPosition(1920.f * 0.5f - timeBarWidth * 0.5f, 1080.f - 125.f);
+
+	// 게임 데이터
+	bool isPlaying = false;
+	bool isStart = false;
+	bool isTimeOver = false;
+	int score = 0;
+	float remainTime = 5.f;
+	float timeBarSpeed = timeBarWidth / 5.f;
+
+	//
+
 	sf::Clock clock;
 
 	bool isLeft = false;
 	bool isRight = false;
-	bool isPause = false;
 
 	while (window.isOpen())
 	{
@@ -177,27 +224,18 @@ int main()
 					switch (event.key.code)
 					{
 						case sf::Keyboard::Left:
-							if (!isPause)
+							if (!isLeft)
 							{
-								if (!isLeft)
-								{
-									isLeftDown = true;
-								}
-								isLeft = true;
+								isLeftDown = true;
 							}
+							isLeft = true;
 							break;
 						case sf::Keyboard::Right:
-							if (!isPause)
+							if (!isRight)
 							{
-								if (!isRight)
-								{
-									isRightDown = true;
-								}
-								isRight = true;
+								isRightDown = true;
 							}
-							break;
-						case sf::Keyboard::Enter:							
-							isPause = false;
+							isRight = true;
 							break;
 					}
 					break;
@@ -212,6 +250,13 @@ int main()
 							isRightUp = true;
 							isRight = false;
 							break;
+						case sf::Keyboard::Return:
+							isPlaying = !isPlaying;
+							if (!isStart)
+							{
+								isStart = true;
+							}
+							break;
 					}
 					break;
 				default:
@@ -219,36 +264,51 @@ int main()
 			}
 		}
 
-		// 업데이트		 
-		/// Left, Right 키 입력시 실행
-		if (isLeftDown || isRightDown)
+		// 업데이트		
+		if (isPlaying)
 		{
-			if (isLeftDown)
+			/// 타임바 갱신
+			remainTime -= deltaTime;
+			if (remainTime < 0.f)
 			{
-				sidePlayer = Side::LEFT;
+				remainTime = 0.f;
+				isPlaying = false;
 			}
-			if (isRightDown)
+			timeBar.setSize({ timeBarSpeed * remainTime, timeBarHeight });
+ 
+			/// Left, Right 키 입력시 실행
+			if (isLeftDown || isRightDown)
 			{
-				sidePlayer = Side::RIGHT;
-			}
-			updateBranches(sideBranch, NUM_BRANCHES);
+				if (isLeftDown)
+				{
+					sidePlayer = Side::LEFT;
+				}
+				if (isRightDown)
+				{
+					sidePlayer = Side::RIGHT;
+				}
+				updateBranches(sideBranch, NUM_BRANCHES);
 
-			if (sidePlayer == sideBranch[NUM_BRANCHES - 1])
-			{
-				printf("충돌했습니다!\n");
-				isPause = true;
+				if (sidePlayer == sideBranch[NUM_BRANCHES - 1])
+				{
+					isPlaying = false;
+					score = 0;
+					textScore.setString("SCORE: " + std::to_string(score));
+				}
+				else
+				{
+					score += 10;
+					textScore.setString("SCORE: " + std::to_string(score));
+				}
 			}
-		}
 
-		/// 위치 설정들
-		if (!isPause)
-		{
+			/// 위치 설정들
 			for (int i = 0; i < 5; i++)
 			{
 				posCloudBee[i] = spriteCloudBee[i].getPosition();
 				random = (float)rand() / RAND_MAX;
 				// 구름 
-				if (i < 3) 
+				if (i < 3)
 				{
 					if (posCloudBee[i].x < -400 || posCloudBee[i].x > 1920 + 400)
 					{
@@ -273,7 +333,7 @@ int main()
 				else
 				{
 					// 포물선 벌
-					if (i == 3) 
+					if (i == 3)
 					{
 						if (posCloudBee[i].x < -100 || posCloudBee[i].x > 1920 + 100)
 						{
@@ -300,7 +360,7 @@ int main()
 						t += 2 * deltaTime;
 					}
 					// 랜덤움직임 벌
-					else 
+					else
 					{
 						beeStopTime += deltaTime;
 
@@ -345,59 +405,76 @@ int main()
 				}
 				spriteCloudBee[i].setPosition(posCloudBee[i]);
 			}
-		}
 
-		for (int i = 0; i < NUM_BRANCHES; i++)
-		{
-			switch (sideBranch[i])
+			for (int i = 0; i < NUM_BRANCHES; i++)
+			{
+				switch (sideBranch[i])
+				{
+					case Side::LEFT:
+						spriteBranch[i].setScale(-1.f, 1.f);
+						break;
+					case Side::RIGHT:
+						spriteBranch[i].setScale(1.f, 1.f);
+						break;
+				}
+			}
+
+			switch (sidePlayer)
 			{
 				case Side::LEFT:
-					spriteBranch[i].setScale(-1.f, 1.f);
+					spritePlayer.setScale(-1.f, 1.f);
+					spriteAxe.setScale(-1.f, 1.f);
 					break;
 				case Side::RIGHT:
-					spriteBranch[i].setScale(1.f, 1.f);
+					spritePlayer.setScale(1.f, 1.f);
+					spriteAxe.setScale(1.f, 1.f);
 					break;
 			}
 		}
 		
-		switch (sidePlayer)
-		{
-			case Side::LEFT:
-				spritePlayer.setScale(-1.f, 1.f);
-				spriteAxe.setScale(-1.f, 1.f);
-				break;
-			case Side::RIGHT:
-				spritePlayer.setScale(1.f, 1.f);
-				spriteAxe.setScale(1.f, 1.f);
-				break;
-		}
-
 		// 그리기
 		window.clear();
 
+		// WORLD
 		window.draw(spriteBackground);
 		for (int i = 0; i < 3; i++)
 		{
 			window.draw(spriteCloudBee[i]);
 		}
-		window.draw(spriteTree); 
-		for (int i = 0; i < NUM_BRANCHES; i++) 
+		window.draw(spriteTree);
+		for (int i = 0; i < NUM_BRANCHES; i++)
 		{
 			if (sideBranch[i] != Side::NONE)
 			{
 				window.draw(spriteBranch[i]);
 			}
 		}
-		for (int i = 3; i < 5; i++) 
+		for (int i = 3; i < 5; i++)
 		{
 			window.draw(spriteCloudBee[i]);
 		}
-		window.draw(spritePlayer); 
-		if (isLeft || isRight) 
+		window.draw(spritePlayer);
+		if ((isLeft || isRight) && isPlaying)
 		{
 			window.draw(spriteAxe);
 		}
 
+		// UI
+		window.draw(textScore);
+		if (!isPlaying)
+		{
+			if (!isStart)
+			{
+				window.draw(textStart);
+			}
+			else
+			{
+				window.draw(textResume);
+			}
+			//window.draw(textRestart);
+		}
+		window.draw(timeBar);
+		
 		window.display();
 	}
 
