@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <ctime>
 #include <cstdlib>
 
@@ -6,9 +7,11 @@ enum class Side { LEFT, RIGHT, NONE };
 
 void InitCloud(Side* side, sf::Sprite* sprite, sf::Vector2f* dir, sf::Texture* texture, int random);
 void InitBee(Side* side, sf::Sprite* sprite, sf::Vector2f* dir);
+void InitBranch(Side* side, sf::Sprite* sprite, int index);
 
 void UpdateCloud(Side sideCloud[], sf::Sprite spriteCloud[], sf::Vector2f dirCloud[], float speedCloud[], sf::Texture* textureCloud, float deltatime);
 void UpdateBee(Side* sideBee, sf::Sprite* spriteBee, sf::Vector2f* dirBee, float speedBee, float* timeBee, float deltatime);
+void UpdateBranch(Side* sideBranch, sf::Sprite* spriteBranch);
 
 int main()
 {
@@ -16,6 +19,9 @@ int main()
     sf::Clock clock;
     sf::Time time;
     int random;    
+    int score = 0;
+    const float INITIAL_TIME = 5.0f;
+    float remainTime = INITIAL_TIME;
 
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "RemakeTimber");
 
@@ -30,7 +36,16 @@ int main()
     textureBee.loadFromFile("graphics/bee.png");
     sf::Texture textureBranch;
     textureBranch.loadFromFile("graphics/branch.png");
+    sf::Texture texturePlayer;
+    texturePlayer.loadFromFile("graphics/player.png");
+    sf::Texture textureAxe;
+    textureAxe.loadFromFile("graphics/axe.png");
+    sf::Texture textureLog;
+    textureLog.loadFromFile("graphics/log.png");
 
+    sf::Font font;
+    font.loadFromFile("fonts/KOMIKAP_.ttf");
+    
     // 리소스 실행객체
     sf::Sprite spriteBackground;
     spriteBackground.setTexture(textureBackground);
@@ -66,41 +81,178 @@ int main()
         spriteBranch[i].setTexture(textureBranch);
         spriteBranch[i].setOrigin(-150.f, 0);
         spriteBranch[i].setPosition(1920 * 0.5f, 150.f * i);
-        int random = rand() % 3;
-        switch (random)
-        {
-            case 0:
-                sideBranch[i] = Side::LEFT;
-                spriteBranch[i].setScale(-1.f, 1.f);
-                break;
-            case 1:
-                sideBranch[i] = Side::RIGHT;
-                spriteBranch[i].setScale(1.f, 1.f);
-                break;
-            case 2:
-                sideBranch[i] = Side::NONE;                
-                break;
-        }
+        InitBranch(sideBranch, spriteBranch, i);
     }
     sideBranch[5] = Side::NONE;
+
+    sf::Sprite spriteLog[20];
+    for (int i = 0; i < 20; i++)
+    {
+        spriteLog[i].setTexture(textureLog);
+    }
+
+    Side sidePlayer = Side::RIGHT;
+    sf::Sprite spritePlayer;
+    spritePlayer.setTexture(texturePlayer);
+    spritePlayer.setOrigin(texturePlayer.getSize().x * 0.5f - textureTree.getSize().x, texturePlayer.getSize().y);
+    spritePlayer.setPosition(1920 * 0.5f, 910);
+
+    sf::Sprite spriteAxe;
+    spriteAxe.setTexture(textureAxe);
+    spriteAxe.setOrigin(-90, textureAxe.getSize().y);
+    spriteAxe.setPosition(1920 * 0.5f, 850);
+
+    sf::RectangleShape timer;
+    timer.setFillColor(sf::Color::Red);
+    timer.setSize({ 1720, 100 });
+    timer.setPosition(100, 925);
     
+    sf::Text scoreText;
+    scoreText.setFont(font);
+    scoreText.setCharacterSize(70);
+    scoreText.setFillColor(sf::Color::White);
+    scoreText.setPosition(10, 10);
+    scoreText.setString("Score : " + std::to_string(score));
+
+    sf::Text textMessage;
+    textMessage.setFont(font);
+    textMessage.setCharacterSize(70);
+    textMessage.setFillColor(sf::Color::White);
+    textMessage.setPosition(1920 * 0.5f, 400);
+    textMessage.setString("Press Enter to Start!");
+    textMessage.setOrigin(textMessage.getLocalBounds().width * 0.5f, textMessage.getLocalBounds().height * 0.5f);
+
+    bool isLeft = false;
+    bool isRight = false;
+    bool isPlaying = false;
+    bool isGameOver = false;
+
     // 윈도우 실행
     while (window.isOpen())
     {
         time = clock.restart();
         float deltatime = time.asSeconds();
 
-        sf::Event event;
         // 이벤트 반복
+        sf::Event event;
+        bool isLeftDown = false;
+        bool isLeftUp = false;
+        bool isRightDown = false;
+        bool isRightUp = false;
+
         while (window.pollEvent(event))
         {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            switch (event.type)
+            {
+                case sf::Event::Closed:
+                    window.close();
+                    break;
+
+                case sf::Event::KeyPressed:
+                    switch (event.key.code)
+                    {
+                        case sf::Keyboard::Left:
+                            if (!isLeft)
+                            {
+                                isLeftDown = true;
+                            }
+                            isLeft = true;
+                            break;
+                        case sf::Keyboard::Right:
+                            if (!isRight)
+                            {
+                                isRightDown = true;
+                            }
+                            isRight = true;
+                            break;
+                    }
+                    break;
+
+                case sf::Event::KeyReleased:
+                    switch (event.key.code)
+                    {
+                        case sf::Keyboard::Left:
+                            isLeft = false;
+                            isLeftUp = true;
+                            break;
+                        case sf::Keyboard::Right:
+                            isRight = false;
+                            isRightUp = true;
+                            break;
+                        case sf::Keyboard::Return:
+                            isPlaying = !isPlaying;
+                            // 정지에서 플레이로 바뀔 때
+                            if (isPlaying)
+                            {
+                                if (isGameOver)
+                                {
+                                    sideBranch[5] = Side::NONE;
+                                    score = 0;
+                                    remainTime = INITIAL_TIME;
+                                    scoreText.setString("Score : " + std::to_string(score));
+                                    isGameOver = false;
+                                    timer.setSize({ 1720, 100 });
+                                }
+                            }
+                            // 플레이에서 정지로 바뀔 때
+                            else
+                            {
+                                textMessage.setString("Press Enter to Resume!");
+                                textMessage.setOrigin(textMessage.getLocalBounds().width * 0.5f, textMessage.getLocalBounds().height * 0.5f);
+                            }
+                            break;
+                    }
+                    break;                
+            }
         }
 
         // 업데이트
-        UpdateCloud(sideCloud, spriteCloud, dirCloud, speedCloud, &textureCloud, deltatime);
-        UpdateBee(&sideBee, &spriteBee, &dirBee, speedBee, &timeBee, deltatime);
+        if (isPlaying)
+        {
+            UpdateCloud(sideCloud, spriteCloud, dirCloud, speedCloud, &textureCloud, deltatime);
+            UpdateBee(&sideBee, &spriteBee, &dirBee, speedBee, &timeBee, deltatime);
+
+            if (isLeftDown || isRightDown)
+            {
+                if (isLeftDown)
+                {
+                    spritePlayer.setScale(-1.f, 1.f);
+                    spriteAxe.setScale(-1.f, 1.f);
+                    sidePlayer = Side::LEFT;
+                }
+
+                if (isRightDown)
+                {
+                    spritePlayer.setScale(1.f, 1.f);
+                    spriteAxe.setScale(1.f, 1.f);
+                    sidePlayer = Side::RIGHT;
+                }
+
+                score += 1000;
+                scoreText.setString("Score : " + std::to_string(score));
+
+                UpdateBranch(sideBranch, spriteBranch);
+
+                if (sidePlayer == sideBranch[5])
+                {
+                    isPlaying = false;
+                    isGameOver = true;
+                    textMessage.setString("Press Enter to Restart!");
+                    textMessage.setOrigin(textMessage.getLocalBounds().width * 0.5f, textMessage.getLocalBounds().height * 0.5f);
+                }
+            }
+
+            remainTime -= deltatime;
+            if (remainTime < 0)
+            {
+                remainTime = 0;
+                isPlaying = false;
+                isGameOver = true;
+                textMessage.setString("Press Enter to Restart!");
+                textMessage.setOrigin(textMessage.getLocalBounds().width * 0.5f, textMessage.getLocalBounds().height * 0.5f);
+            }
+            timer.setSize({ 1720.f * (remainTime / INITIAL_TIME), 100 });
+        }
 
         // 그리기
         window.clear();
@@ -118,12 +270,59 @@ int main()
                 window.draw(spriteBranch[i]);
             }
         }
+        window.draw(spritePlayer);
+        if (isPlaying && (isLeft || isRight))
+        {
+            window.draw(spriteAxe);
+        }
         window.draw(spriteBee);
+        window.draw(scoreText);
+        if (!isPlaying)
+        {
+            window.draw(textMessage);
+        }
+        window.draw(timer);
 
         window.display();
     }
 
     return 0;
+}
+
+void UpdateBranch(Side* sideBranch, sf::Sprite* spriteBranch)
+{
+    for (int i = 5; i > 0; i--)
+    {
+        sideBranch[i] = sideBranch[i - 1];
+
+        if (sideBranch[i] == Side::LEFT)
+            spriteBranch[i].setScale(-1.f, 1.f);
+        if (sideBranch[i] == Side::RIGHT)
+            spriteBranch[i].setScale(1.f, 1.f);
+    }
+    InitBranch(sideBranch, spriteBranch, 0);
+}
+
+void InitBranch(Side* sideBranch, sf::Sprite* spriteBranch, int i)
+{
+    int random = rand() % 3;
+    switch (random)
+    {
+        case 0:
+            sideBranch[i] = Side::LEFT;
+            break;
+        case 1:
+            sideBranch[i] = Side::RIGHT;
+            break;
+        case 2:
+            sideBranch[i] = Side::NONE;
+            break;
+    }
+
+    if (sideBranch[i] == Side::LEFT)
+        spriteBranch[i].setScale(-1.f, 1.f);
+    if (sideBranch[i] == Side::RIGHT)
+        spriteBranch[i].setScale(1.f, 1.f);
 }
 
 void UpdateBee(Side* sideBee, sf::Sprite* spriteBee, sf::Vector2f* dirBee, float speedBee, float* timeBee, float deltatime)
