@@ -12,6 +12,8 @@ void InitBranch(Side* side, sf::Sprite* sprite, int index);
 void UpdateCloud(Side sideCloud[], sf::Sprite spriteCloud[], sf::Vector2f dirCloud[], float speedCloud[], sf::Texture* textureCloud, float deltatime);
 void UpdateBee(Side* sideBee, sf::Sprite* spriteBee, sf::Vector2f* dirBee, float speedBee, float* timeBee, float deltatime);
 void UpdateBranch(Side* sideBranch, sf::Sprite* spriteBranch);
+void UpdateLogs(bool isActiveLog[], sf::Vector2f velocityLog[], sf::Sprite spriteLog[], float gravity, float deltatime, int COUNT_LOG);
+void UpdateTimer(sf::RectangleShape* timer, float* remainTime, float deltatime, bool* isPlaying, bool* isGameOver, sf::Text* textMessage, float INITAL_TIME);
 
 int main()
 {
@@ -20,7 +22,7 @@ int main()
     sf::Time time;
     int random;    
     int score = 0;
-    const float INITIAL_TIME = 5.0f;
+    const float INITIAL_TIME = 15.0f;
     float remainTime = INITIAL_TIME;
 
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "RemakeTimber");
@@ -85,23 +87,35 @@ int main()
     }
     sideBranch[5] = Side::NONE;
 
-    sf::Sprite spriteLog[20];
-    for (int i = 0; i < 20; i++)
+    const int COUNT_LOG = 10;
+    sf::Sprite spriteLog[COUNT_LOG];
+    sf::Vector2f dirLog;
+    sf::Vector2f velocityLog[COUNT_LOG];
+    bool isActiveLog[COUNT_LOG];
+    int indexLog = 0;
+    float speedLog = 2000.f;
+    float gravity = 7000.f;
+    for (int i = 0; i < COUNT_LOG; i++)
     {
         spriteLog[i].setTexture(textureLog);
+        spriteLog[i].setOrigin(textureLog.getSize().x * 0.5f, textureLog.getSize().y);
+        spriteLog[i].setPosition(1920 * 0.5f, textureTree.getSize().y);
+        velocityLog[i] = { 0,0 };
+        isActiveLog[i] = false;
     }
 
-    Side sidePlayer = Side::RIGHT;
     sf::Sprite spritePlayer;
     spritePlayer.setTexture(texturePlayer);
     spritePlayer.setOrigin(texturePlayer.getSize().x * 0.5f - textureTree.getSize().x, texturePlayer.getSize().y);
     spritePlayer.setPosition(1920 * 0.5f, 910);
+    Side sidePlayer = Side::RIGHT;
 
     sf::Sprite spriteAxe;
     spriteAxe.setTexture(textureAxe);
     spriteAxe.setOrigin(-90, textureAxe.getSize().y);
     spriteAxe.setPosition(1920 * 0.5f, 850);
 
+    // UI
     sf::RectangleShape timer;
     timer.setFillColor(sf::Color::Red);
     timer.setSize({ 1720, 100 });
@@ -113,7 +127,6 @@ int main()
     scoreText.setFillColor(sf::Color::White);
     scoreText.setPosition(10, 10);
     scoreText.setString("Score : " + std::to_string(score));
-
     sf::Text textMessage;
     textMessage.setFont(font);
     textMessage.setCharacterSize(70);
@@ -211,7 +224,6 @@ int main()
         {
             UpdateCloud(sideCloud, spriteCloud, dirCloud, speedCloud, &textureCloud, deltatime);
             UpdateBee(&sideBee, &spriteBee, &dirBee, speedBee, &timeBee, deltatime);
-
             if (isLeftDown || isRightDown)
             {
                 if (isLeftDown)
@@ -219,6 +231,8 @@ int main()
                     spritePlayer.setScale(-1.f, 1.f);
                     spriteAxe.setScale(-1.f, 1.f);
                     sidePlayer = Side::LEFT;
+
+                    dirLog = {1.0f,-1.0f};
                 }
 
                 if (isRightDown)
@@ -226,7 +240,17 @@ int main()
                     spritePlayer.setScale(1.f, 1.f);
                     spriteAxe.setScale(1.f, 1.f);
                     sidePlayer = Side::RIGHT;
+
+                    dirLog = {-1.0f,-1.0f};
                 }
+
+                velocityLog[indexLog] = dirLog * speedLog;
+                isActiveLog[indexLog] = true;
+
+                indexLog = (indexLog + 1) % COUNT_LOG;
+                spriteLog[indexLog].setPosition(1920 * 0.5f, textureTree.getSize().y);
+                velocityLog[indexLog] = { 0,0 };
+                isActiveLog[indexLog] = false;
 
                 score += 1000;
                 scoreText.setString("Score : " + std::to_string(score));
@@ -241,27 +265,18 @@ int main()
                     textMessage.setOrigin(textMessage.getLocalBounds().width * 0.5f, textMessage.getLocalBounds().height * 0.5f);
                 }
             }
-
-            remainTime -= deltatime;
-            if (remainTime < 0)
-            {
-                remainTime = 0;
-                isPlaying = false;
-                isGameOver = true;
-                textMessage.setString("Press Enter to Restart!");
-                textMessage.setOrigin(textMessage.getLocalBounds().width * 0.5f, textMessage.getLocalBounds().height * 0.5f);
-            }
-            timer.setSize({ 1720.f * (remainTime / INITIAL_TIME), 100 });
+            UpdateTimer(&timer, &remainTime, deltatime, &isPlaying, &isGameOver, &textMessage, INITIAL_TIME);
+            UpdateLogs(isActiveLog, velocityLog, spriteLog, gravity, deltatime, COUNT_LOG);            
         }
 
         // ±×¸®±â
         window.clear();
-
+        #pragma region Draw
         window.draw(spriteBackground);
         for (int i = 0; i < 3; i++)
         {
             window.draw(spriteCloud[i]);
-        }       
+        }
         window.draw(spriteTree);
         for (int i = 0; i < 6; i++)
         {
@@ -270,23 +285,55 @@ int main()
                 window.draw(spriteBranch[i]);
             }
         }
+        window.draw(spriteBee);
+        for (int i = 0; i < COUNT_LOG; i++)
+        {
+            window.draw(spriteLog[i]);
+        }
         window.draw(spritePlayer);
         if (isPlaying && (isLeft || isRight))
         {
             window.draw(spriteAxe);
         }
-        window.draw(spriteBee);
         window.draw(scoreText);
         if (!isPlaying)
         {
             window.draw(textMessage);
         }
         window.draw(timer);
-
+#pragma endregion
         window.display();
     }
 
     return 0;
+}
+
+void UpdateTimer(sf::RectangleShape* timer, float* remainTime, float deltatime, bool* isPlaying, bool* isGameOver, sf::Text* textMessage, float INITIAL_TIME)
+{
+    *remainTime -= deltatime;
+    if (*remainTime < 0)
+    {
+        *remainTime = 0;
+        *isPlaying = false;
+        *isGameOver = true;
+        textMessage->setString("Press Enter to Restart!");
+        textMessage->setOrigin(textMessage->getLocalBounds().width * 0.5f, textMessage->getLocalBounds().height * 0.5f);
+    }
+    timer->setSize({ 1720.f * (*remainTime / INITIAL_TIME), 100 });
+}
+
+void UpdateLogs(bool isActiveLog[], sf::Vector2f velocityLog[], sf::Sprite spriteLog[], float gravity, float deltatime, int COUNT_LOG)
+{
+    for (int i = 0; i < COUNT_LOG; i++)
+    {
+        if (isActiveLog[i])
+        {
+            velocityLog[i].y += gravity * deltatime;
+            sf::Vector2f posLog = spriteLog[i].getPosition();
+            posLog += velocityLog[i] * deltatime;
+            spriteLog[i].setPosition(posLog);
+        }
+    }
 }
 
 void UpdateBranch(Side* sideBranch, sf::Sprite* spriteBranch)
