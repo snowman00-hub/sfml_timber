@@ -13,7 +13,7 @@ void UpdateCloud(Side sideCloud[], sf::Sprite spriteCloud[], sf::Vector2f dirClo
 void UpdateBee(Side* sideBee, sf::Sprite* spriteBee, sf::Vector2f* dirBee, float speedBee, float* timeBee, float deltatime);
 void UpdateBranch(Side* sideBranch, sf::Sprite* spriteBranch);
 void UpdateLogs(bool isActiveLog[], sf::Vector2f velocityLog[], sf::Sprite spriteLog[], float gravity, float deltatime, int COUNT_LOG);
-void UpdateTimer(sf::RectangleShape* timer, float* remainTime, float deltatime, bool* isPlaying, bool* isGameOver, sf::Text* textMessage, float INITAL_TIME);
+void UpdateTimer(sf::RectangleShape* timer, float* remainTime, float deltatime, bool* isPlaying, bool* isGameOver, sf::Text* textMessage, float INITAL_TIME, sf::Sound* soundOutOfTime);
 
 int main()
 {
@@ -47,6 +47,13 @@ int main()
 
     sf::Font font;
     font.loadFromFile("fonts/KOMIKAP_.ttf");
+
+    sf::SoundBuffer sbChop;
+    sbChop.loadFromFile("sound/chop.wav");
+    sf::SoundBuffer sbDeath;
+    sbDeath.loadFromFile("sound/death.wav");
+    sf::SoundBuffer sbOutOfTime;
+    sbOutOfTime.loadFromFile("sound/out_of_time.wav");
     
     // 府家胶 角青按眉
     sf::Sprite spriteBackground;
@@ -134,6 +141,14 @@ int main()
     textMessage.setPosition(1920 * 0.5f, 400);
     textMessage.setString("Press Enter to Start!");
     textMessage.setOrigin(textMessage.getLocalBounds().width * 0.5f, textMessage.getLocalBounds().height * 0.5f);
+
+    // 荤款靛
+    sf::Sound soundChop;
+    soundChop.setBuffer(sbChop);
+    sf::Sound soundDeath;
+    soundDeath.setBuffer(sbDeath);
+    sf::Sound soundOutOfTime;
+    soundOutOfTime.setBuffer(sbOutOfTime);
 
     bool isLeft = false;
     bool isRight = false;
@@ -251,6 +266,7 @@ int main()
                 spriteLog[indexLog].setPosition(1920 * 0.5f, textureTree.getSize().y);
                 velocityLog[indexLog] = { 0,0 };
                 isActiveLog[indexLog] = false;
+                soundChop.play();
 
                 score += 1000;
                 scoreText.setString("Score : " + std::to_string(score));
@@ -263,9 +279,10 @@ int main()
                     isGameOver = true;
                     textMessage.setString("Press Enter to Restart!");
                     textMessage.setOrigin(textMessage.getLocalBounds().width * 0.5f, textMessage.getLocalBounds().height * 0.5f);
+                    soundDeath.play();
                 }
             }
-            UpdateTimer(&timer, &remainTime, deltatime, &isPlaying, &isGameOver, &textMessage, INITIAL_TIME);
+            UpdateTimer(&timer, &remainTime, deltatime, &isPlaying, &isGameOver, &textMessage, INITIAL_TIME,&soundOutOfTime);
             UpdateLogs(isActiveLog, velocityLog, spriteLog, gravity, deltatime, COUNT_LOG);            
         }
 
@@ -308,7 +325,7 @@ int main()
     return 0;
 }
 
-void UpdateTimer(sf::RectangleShape* timer, float* remainTime, float deltatime, bool* isPlaying, bool* isGameOver, sf::Text* textMessage, float INITIAL_TIME)
+void UpdateTimer(sf::RectangleShape* timer, float* remainTime, float deltatime, bool* isPlaying, bool* isGameOver, sf::Text* textMessage, float INITIAL_TIME,sf::Sound* soundOutOfTime)
 {
     *remainTime -= deltatime;
     if (*remainTime < 0)
@@ -318,6 +335,7 @@ void UpdateTimer(sf::RectangleShape* timer, float* remainTime, float deltatime, 
         *isGameOver = true;
         textMessage->setString("Press Enter to Restart!");
         textMessage->setOrigin(textMessage->getLocalBounds().width * 0.5f, textMessage->getLocalBounds().height * 0.5f);
+        soundOutOfTime->play();
     }
     timer->setSize({ 1720.f * (*remainTime / INITIAL_TIME), 100 });
 }
